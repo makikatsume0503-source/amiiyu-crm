@@ -2,6 +2,9 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import * as LucideIcons from 'lucide-react';
+import { auth, signOut } from '@/lib/firebase';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import Login from '@/components/Login';
 
 const Icon = ({ name, size = 18, className = "" }: { name: string, size?: number, className?: string }) => {
   const LucideIcon = (LucideIcons as any)[name];
@@ -37,8 +40,18 @@ export default function CustomerManagement() {
   const [useRewardThisTime, setUseRewardThisTime] = useState(false);
   const [isListening, setIsListening] = useState(false);
 
+  // Auth State
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   useEffect(() => {
     setVisitDate(new Date().toISOString().split('T')[0]);
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   // 音声認識の設定
@@ -174,19 +187,42 @@ export default function CustomerManagement() {
     setEditingCustomer(null);
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#FDF8F6] flex flex-col items-center justify-center">
+        <Icon name="Loader2" className="animate-spin text-[#D9826C] mb-4" size={32} />
+        <p className="text-[#A64B35]/60 font-serif text-sm tracking-widest">Loading ammiyu...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
   return (
     <div className="min-h-screen text-[#5D4037] bg-[#FDF8F6]">
       <header className="bg-white/80 backdrop-blur-md border-b border-[#EAD7D1] sticky top-0 z-20 p-4">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedCustomer(null)}>
-            <div className="w-10 h-10 bg-[#D9826C] rounded-full flex items-center justify-center text-white shadow-sm">
-              <Icon name="Sparkles" size={20} />
+          <div className="flex items-baseline gap-4">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedCustomer(null)}>
+              <div className="w-10 h-10 bg-[#D9826C] rounded-full flex items-center justify-center text-white shadow-sm">
+                <Icon name="Sparkles" size={20} />
+              </div>
+              <h1 className="text-2xl font-serif font-bold text-[#A64B35] tracking-widest">ammiyu</h1>
             </div>
-            <h1 className="text-2xl font-serif font-bold text-[#A64B35] tracking-widest">ammiyu</h1>
+            <button onClick={() => signOut(auth)} className="text-xs text-[#A64B35]/50 hover:text-[#A64B35] font-bold transition-colors ml-4 hidden md:block">
+              ログアウト
+            </button>
           </div>
-          <button onClick={() => { setEditingCustomer(null); setShowAddForm(true); }} className="bg-[#D9826C] text-white px-5 py-2 rounded-full flex items-center gap-2 hover:bg-[#C26D59] transition-all shadow-md active:scale-95 text-sm font-bold">
-            <Icon name="UserPlus" size={18} /> 登録
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => signOut(auth)} className="text-xs text-[#A64B35]/50 hover:text-[#A64B35] font-bold transition-colors md:hidden">
+              ログアウト
+            </button>
+            <button onClick={() => { setEditingCustomer(null); setShowAddForm(true); }} className="bg-[#D9826C] text-white px-5 py-2 rounded-full flex items-center gap-2 hover:bg-[#C26D59] transition-all shadow-md active:scale-95 text-sm font-bold">
+              <Icon name="UserPlus" size={18} /> 登録
+            </button>
+          </div>
         </div>
       </header>
 

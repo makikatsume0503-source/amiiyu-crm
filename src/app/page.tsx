@@ -175,20 +175,21 @@ export default function CustomerManagement() {
     const email = formData.get('email') as string;
     const birthday = formData.get('birthday') as string;
     const notes = formData.get('notes') as string;
+    const visitCountStr = formData.get('visitCount');
+    const visitCount = visitCountStr ? Number(visitCountStr) : 0;
 
     if (!name || !reading) return;
 
     if (editingCustomer) {
       setCustomers(customers.map(c =>
         c.id === editingCustomer.id
-          ? { ...c, name, reading, phone, email, birthday, notes }
+          ? { ...c, name, reading, phone, email, birthday, notes, visitCount }
           : c
       ));
       if (selectedCustomer?.id === editingCustomer.id) {
-        setSelectedCustomer({ ...selectedCustomer, name, reading, phone, email, birthday, notes });
+        setSelectedCustomer({ ...selectedCustomer, name, reading, phone, email, birthday, notes, visitCount });
       }
     } else {
-      const visitCount = formData.get('visitCount') || 0;
       const lastVisit = (formData.get('lastVisit') as string) || '未来店';
       const newCustomer = {
         id: Date.now(),
@@ -198,7 +199,7 @@ export default function CustomerManagement() {
         email,
         birthday,
         notes,
-        visitCount: Number(visitCount),
+        visitCount,
         lastVisit,
         history: lastVisit !== '未来店' ? [{ date: lastVisit, note: '移行データ', isRewardUsed: false }] : []
       };
@@ -541,21 +542,21 @@ export default function CustomerManagement() {
                 </div>
               </section>
 
-              {!editingCustomer && (
-                <section className="pt-6 border-t border-[#EAD7D1]/50 space-y-4">
-                  <h3 className="text-[10px] font-black text-[#A64B35]/50 ml-1 tracking-widest uppercase">Migration Info</h3>
-                  <div className="grid grid-cols-2 gap-4">
+              <section className="pt-6 border-t border-[#EAD7D1]/50 space-y-4">
+                <h3 className="text-[10px] font-black text-[#A64B35]/50 ml-1 tracking-widest uppercase">System Info</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[9px] text-[#A64B35]/60 ml-2 mb-1">総来店回数</p>
+                    <input name="visitCount" type="number" defaultValue={editingCustomer ? editingCustomer.visitCount : "0"} className="w-full p-4 border border-[#EAD7D1] rounded-2xl bg-[#FDF8F6]/30 text-sm outline-none" />
+                  </div>
+                  {!editingCustomer && (
                     <div>
-                      <p className="text-[9px] text-[#A64B35]/60 ml-2 mb-1">現在の来店回数</p>
-                      <input name="visitCount" type="number" defaultValue="0" className="w-full p-4 border border-[#EAD7D1] rounded-2xl bg-[#FDF8F6]/30 text-sm outline-none" />
-                    </div>
-                    <div>
-                      <p className="text-[9px] text-[#A64B35]/60 ml-2 mb-1">最終来店日</p>
+                      <p className="text-[9px] text-[#A64B35]/60 ml-2 mb-1">最終来店日 (初期データ移行のみ)</p>
                       <input name="lastVisit" type="date" className="w-full p-4 border border-[#EAD7D1] rounded-2xl bg-[#FDF8F6]/30 text-sm outline-none" />
                     </div>
-                  </div>
-                </section>
-              )}
+                  )}
+                </div>
+              </section>
 
               <div className="flex gap-4 mt-8">
                 <button type="button" onClick={() => { setShowAddForm(false); setEditingCustomer(null); }} className="flex-1 py-4 text-sm font-bold text-[#A64B35]/60 hover:text-[#A64B35]">キャンセル</button>

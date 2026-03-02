@@ -379,7 +379,7 @@ export default function CustomerManagement() {
                 <div className="flex justify-between items-center">
                   <label className="text-xs font-bold flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={useRewardThisTime} onChange={e => setUseRewardThisTime(e.target.checked)} className="rounded border-[#EAD7D1] accent-[#D9826C]" />
-                    特典（トリートメント等）を利用する
+                    特典（10%off）を利用する
                   </label>
                   <button onClick={() => addVisit(selectedCustomer.id)} className="bg-[#D9826C] text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-md hover:bg-[#C26D59] transition-all active:scale-95">記録を保存</button>
                 </div>

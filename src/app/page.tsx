@@ -13,22 +13,43 @@ const Icon = ({ name, size = 18, className = "" }: { name: string, size?: number
 };
 
 export default function CustomerManagement() {
-  const [customers, setCustomers] = useState([
-    {
-      id: 1,
-      name: '佐藤 美咲',
-      reading: 'サトウ ミサキ',
-      phone: '090-1234-5678',
-      email: 'misaki@example.com',
-      birthday: '1995-05-15',
-      notes: 'カラー剤でかぶれやすいので注意。会話は少なめを希望される方です。',
-      lastVisit: '2023-11-20',
-      visitCount: 9,
-      history: [
-        { date: '2023-11-20', note: '全体的に3cmカット。カラーはテラコッタベージュ。', isRewardUsed: false }
-      ]
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('ammiyu_crm_customers');
+    if (saved) {
+      try {
+        setCustomers(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse customers', e);
+      }
+    } else {
+      setCustomers([
+        {
+          id: 1,
+          name: '佐藤 美咲',
+          reading: 'サトウ ミサキ',
+          phone: '090-1234-5678',
+          email: 'misaki@example.com',
+          birthday: '1995-05-15',
+          notes: 'カラー剤でかぶれやすいので注意。会話は少なめを希望される方です。',
+          lastVisit: '2023-11-20',
+          visitCount: 9,
+          history: [
+            { date: '2023-11-20', note: '全体的に3cmカット。カラーはテラコッタベージュ。', isRewardUsed: false }
+          ]
+        }
+      ]);
     }
-  ]);
+    setIsDataLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isDataLoaded) {
+      localStorage.setItem('ammiyu_crm_customers', JSON.stringify(customers));
+    }
+  }, [customers, isDataLoaded]);
 
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -187,7 +208,7 @@ export default function CustomerManagement() {
     setEditingCustomer(null);
   };
 
-  if (authLoading) {
+  if (authLoading || !isDataLoaded) {
     return (
       <div className="min-h-screen bg-[#FDF8F6] flex flex-col items-center justify-center">
         <Icon name="Loader2" className="animate-spin text-[#D9826C] mb-4" size={32} />

@@ -208,6 +208,59 @@ export default function CustomerManagement() {
     setEditingCustomer(null);
   };
 
+  const exportAllCustomersCSV = () => {
+    const headers = ['ID', '名前', 'フリガナ', '電話番号', 'メールアドレス', '誕生日', '総来店回数', '最終来店日', 'メモ'];
+    const csvContent = [
+      headers.join(','),
+      ...customers.map(c => [
+        c.id,
+        `"${c.name}"`,
+        `"${c.reading}"`,
+        `"${c.phone || ''}"`,
+        `"${c.email || ''}"`,
+        `"${c.birthday || ''}"`,
+        c.visitCount,
+        `"${c.lastVisit}"`,
+        `"${(c.notes || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`
+      ].join(','))
+    ].join('\n');
+
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `customers_all_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportCustomerCSV = (id: number) => {
+    const customer = customers.find(c => c.id === id);
+    if (!customer) return;
+
+    const headers = ['来店日', '特典利用', '施術内容'];
+    const csvContent = [
+      headers.join(','),
+      ...customer.history.map((h: any) => [
+        `"${h.date || ''}"`,
+        h.isRewardUsed ? '利用あり' : '',
+        `"${(h.note || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`
+      ].join(','))
+    ].join('\n');
+
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `customer_history_${customer.name}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   if (authLoading || !isDataLoaded) {
     return (
       <div className="min-h-screen bg-[#FDF8F6] flex flex-col items-center justify-center">
@@ -240,8 +293,11 @@ export default function CustomerManagement() {
             <button onClick={() => signOut(auth)} className="text-xs text-[#A64B35]/50 hover:text-[#A64B35] font-bold transition-colors md:hidden">
               ログアウト
             </button>
-            <button onClick={() => { setEditingCustomer(null); setShowAddForm(true); }} className="bg-[#D9826C] text-white px-5 py-2 rounded-full flex items-center gap-2 hover:bg-[#C26D59] transition-all shadow-md active:scale-95 text-sm font-bold">
-              <Icon name="UserPlus" size={18} /> 登録
+            <button onClick={exportAllCustomersCSV} className="bg-white text-[#D9826C] border border-[#D9826C] px-3 md:px-5 py-2 rounded-full flex items-center gap-1.5 md:gap-2 hover:bg-[#FDF8F6] transition-all shadow-sm active:scale-95 text-xs md:text-sm font-bold">
+              <Icon name="Download" size={16} /> <span className="hidden md:inline">全データ出力</span><span className="md:hidden">CSV</span>
+            </button>
+            <button onClick={() => { setEditingCustomer(null); setShowAddForm(true); }} className="bg-[#D9826C] text-white px-4 md:px-5 py-2 rounded-full flex items-center gap-1.5 md:gap-2 hover:bg-[#C26D59] transition-all shadow-md active:scale-95 text-xs md:text-sm font-bold">
+              <Icon name="UserPlus" size={16} /> <span className="hidden md:inline">登録</span><span className="md:hidden">追加</span>
             </button>
           </div>
         </div>
@@ -310,6 +366,9 @@ export default function CustomerManagement() {
                         </button>
                         <button onClick={() => setShowDeleteConfirm(selectedCustomer.id)} className="p-2 hover:bg-white/20 rounded-full transition-colors" title="削除">
                           <Icon name="Trash2" size={18} />
+                        </button>
+                        <button onClick={() => exportCustomerCSV(selectedCustomer.id)} className="p-2 hover:bg-white/20 rounded-full transition-colors" title="履歴をCSVで出力">
+                          <Icon name="DownloadCloud" size={18} />
                         </button>
                       </div>
                     </div>

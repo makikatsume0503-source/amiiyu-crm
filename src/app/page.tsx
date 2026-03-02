@@ -397,7 +397,12 @@ export default function CustomerManagement() {
                       <span className="text-[11px] font-bold text-[#E27D60] bg-white px-3 py-1 rounded-full border border-[#E27D60]/30 shadow-sm">
                         再来目安: {getFiftyDaysLater(h.date)}
                       </span>
-                      {h.isRewardUsed && <span className="text-[9px] bg-[#E27D60] text-white px-2 py-0.5 rounded font-bold uppercase tracking-tighter">Reward Used</span>}
+                      {h.isRewardUsed && (
+                        <span className="text-[11px] font-bold text-white bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] px-3 py-1 rounded-full shadow-sm flex items-center gap-1 border border-[#D4AF37]/50">
+                          <Icon name="Gift" size={12} className="text-white" />
+                          本日10%off!
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm bg-[#FDF8F6] p-5 rounded-2xl border border-white shadow-sm leading-relaxed whitespace-pre-wrap text-[#5D4037]">{h.note}</p>
                   </div>

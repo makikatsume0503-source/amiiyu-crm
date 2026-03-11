@@ -56,10 +56,18 @@ export default function CustomerManagement() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<any>(null);
+
+  // New Visit State
   const [newVisitNote, setNewVisitNote] = useState('');
   const [visitDate, setVisitDate] = useState('');
   const [useRewardThisTime, setUseRewardThisTime] = useState(false);
   const [isListening, setIsListening] = useState(false);
+
+  // Edit History State
+  const [editingHistoryIndex, setEditingHistoryIndex] = useState<number | null>(null);
+  const [editHistoryNote, setEditHistoryNote] = useState('');
+  const [editHistoryDate, setEditHistoryDate] = useState('');
+  const [editHistoryReward, setEditHistoryReward] = useState(false);
 
   // Auth State
   const [user, setUser] = useState<User | null>(null);
@@ -76,7 +84,7 @@ export default function CustomerManagement() {
   }, []);
 
   // 音声認識の設定
-  const startListening = () => {
+  const startListening = (target: 'new' | 'edit') => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert("お使いのブラウザは音声入力に対応していません。ChromeやSafariの最新版をご利用ください。");
@@ -94,7 +102,11 @@ export default function CustomerManagement() {
 
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      setNewVisitNote((prev: string) => prev + (prev ? " " : "") + transcript);
+      if (target === 'new') {
+        setNewVisitNote((prev: string) => prev + (prev ? " " : "") + transcript);
+      } else {
+        setEditHistoryNote((prev: string) => prev + (prev ? " " : "") + transcript);
+      }
     };
 
     recognition.start();
@@ -147,6 +159,31 @@ export default function CustomerManagement() {
     setNewVisitNote('');
     setVisitDate(new Date().toISOString().split('T')[0]);
     setUseRewardThisTime(false);
+  };
+
+  const updateVisitHistory = (customerId: number, index: number) => {
+    if (!editHistoryNote.trim()) return;
+    setCustomers(prev => prev.map(c => {
+      if (c.id === customerId) {
+        const historyCopy = [...c.history];
+        historyCopy[index] = {
+          date: editHistoryDate,
+          note: editHistoryNote,
+          isRewardUsed: editHistoryReward
+        };
+        historyCopy.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        const updated = {
+          ...c,
+          history: historyCopy,
+          lastVisit: historyCopy.length > 0 ? historyCopy[0].date : c.lastVisit
+        };
+        if (selectedCustomer?.id === customerId) setSelectedCustomer(updated);
+        return updated;
+      }
+      return c;
+    }));
+    setEditingHistoryIndex(null);
   };
 
   const updateVisitCountManually = (id: number, newCount: string) => {
@@ -421,11 +458,11 @@ export default function CustomerManagement() {
                   </h3>
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={startListening}
-                      className={`p-2 rounded-full transition-all ${isListening ? 'bg-red-500 text-white animate-pulse-red' : 'bg-white border text-[#D9826C] hover:bg-[#D9826C] hover:text-white'}`}
+                      onClick={() => startListening('new')}
+                      className={`p-2 rounded-full transition-all ${isListening && !editingHistoryIndex ? 'bg-red-500 text-white animate-pulse-red' : 'bg-white border text-[#D9826C] hover:bg-[#D9826C] hover:text-white'}`}
                       title="音声入力"
                     >
-                      <Icon name={isListening ? "Mic" : "Mic"} size={16} />
+                      <Icon name={isListening && !editingHistoryIndex ? "Mic" : "Mic"} size={16} />
                     </button>
                     <input type="date" className="text-xs font-bold p-1 bg-white border rounded-lg outline-none" value={visitDate} onChange={e => setVisitDate(e.target.value)} />
                   </div>
@@ -450,21 +487,78 @@ export default function CustomerManagement() {
                   <Icon name="History" size={12} /> History
                 </h4>
                 {selectedCustomer.history.length > 0 ? selectedCustomer.history.map((h: any, i: number) => (
-                  <div key={i} className="pl-6 border-l-2 border-[#EAD7D1] pb-8 relative last:pb-0">
+                  <div key={i} className="pl-6 border-l-2 border-[#EAD7D1] pb-8 relative last:pb-0 group">
                     <div className="absolute -left-[9px] top-1.5 w-4 h-4 bg-[#D9826C] rounded-full border-4 border-white"></div>
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                      <span className="text-[11px] font-bold text-[#D9826C] bg-[#FDF8F6] px-3 py-1 rounded-full border border-[#EAD7D1]/30">{h.date} 来店</span>
-                      <span className="text-[11px] font-bold text-[#E27D60] bg-white px-3 py-1 rounded-full border border-[#E27D60]/30 shadow-sm">
-                        再来目安: {getFiftyDaysLater(h.date)}
-                      </span>
-                      {h.isRewardUsed && (
-                        <span className="text-[11px] font-bold text-white bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] px-3 py-1 rounded-full shadow-sm flex items-center gap-1 border border-[#D4AF37]/50">
-                          <Icon name="Gift" size={12} className="text-white" />
-                          本日10%off!
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-sm bg-[#FDF8F6] p-5 rounded-2xl border border-white shadow-sm leading-relaxed whitespace-pre-wrap text-[#5D4037]">{h.note}</p>
+
+                    {editingHistoryIndex === i ? (
+                      <div className="bg-[#FDF8F6] p-5 rounded-2xl border border-[#D9826C]/50 shadow-md">
+                        <div className="flex justify-between mb-3 items-center">
+                          <input type="date" className="text-xs font-bold p-1 bg-white border rounded-lg outline-none" value={editHistoryDate} onChange={e => setEditHistoryDate(e.target.value)} />
+                          <button
+                            onClick={() => startListening('edit')}
+                            className={`p-2 rounded-full transition-all ${isListening && editingHistoryIndex === i ? 'bg-red-500 text-white animate-pulse-red' : 'bg-white border text-[#D9826C] hover:bg-[#D9826C] hover:text-white'}`}
+                            title="音声入力"
+                          >
+                            <Icon name="Mic" size={14} />
+                          </button>
+                        </div>
+                        <textarea
+                          className="w-full p-3 rounded-xl border text-sm min-h-[80px] mb-3 focus:ring-2 focus:ring-[#D9826C] outline-none"
+                          value={editHistoryNote}
+                          onChange={e => setEditHistoryNote(e.target.value)}
+                        />
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={editHistoryReward} onChange={e => setEditHistoryReward(e.target.checked)} className="rounded border-[#EAD7D1] accent-[#D9826C]" />
+                            特典適用
+                          </label>
+                          <div className="flex gap-2">
+                            <button onClick={() => setEditingHistoryIndex(null)} className="px-4 py-1.5 rounded-lg text-xs font-bold bg-white text-[#A64B35]/60 hover:bg-gray-50 border">キャンセル</button>
+                            <button onClick={() => updateVisitHistory(selectedCustomer.id, i)} className="bg-[#D9826C] text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-sm hover:bg-[#C26D59] transition-all">保存</button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          <span className="text-[11px] font-bold text-[#D9826C] bg-[#FDF8F6] px-3 py-1 rounded-full border border-[#EAD7D1]/30">{h.date} 来店</span>
+                          <span className="text-[11px] font-bold text-[#E27D60] bg-white px-3 py-1 rounded-full border border-[#E27D60]/30 shadow-sm">
+                            再来目安: {getFiftyDaysLater(h.date)}
+                          </span>
+                          {h.isRewardUsed && (
+                            <span className="text-[11px] font-bold text-white bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] px-3 py-1 rounded-full shadow-sm flex items-center gap-1 border border-[#D4AF37]/50">
+                              <Icon name="Gift" size={12} className="text-white" />
+                              本日10%off!
+                            </span>
+                          )}
+                          <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => {
+                                setEditingHistoryIndex(i);
+                                setEditHistoryDate(h.date);
+                                setEditHistoryNote(h.note);
+                                setEditHistoryReward(h.isRewardUsed || false);
+                              }}
+                              className="p-1.5 rounded-full hover:bg-[#FDF8F6] text-[#A64B35]/50 hover:text-[#D9826C] transition-colors"
+                              title="記録を編集"
+                            >
+                              <Icon name="Edit3" size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        <p
+                          className="text-sm bg-[#FDF8F6] p-5 rounded-2xl border border-white shadow-sm leading-relaxed whitespace-pre-wrap text-[#5D4037] cursor-pointer hover:border-[#D9826C]/30 transition-colors"
+                          onClick={() => {
+                            setEditingHistoryIndex(i);
+                            setEditHistoryDate(h.date);
+                            setEditHistoryNote(h.note);
+                            setEditHistoryReward(h.isRewardUsed || false);
+                          }}
+                        >
+                          {h.note}
+                        </p>
+                      </>
+                    )}
                   </div>
                 )) : (
                   <div className="text-center py-20 bg-[#FDF8F6]/20 rounded-[2rem] border-2 border-dashed border-[#EAD7D1]/50">

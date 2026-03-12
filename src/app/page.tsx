@@ -186,6 +186,27 @@ export default function CustomerManagement() {
     setEditingHistoryIndex(null);
   };
 
+  const deleteVisitHistory = (customerId: number, index: number) => {
+    if (window.confirm('この履歴を削除してもよろしいですか？')) {
+      setCustomers(prev => prev.map(c => {
+        if (c.id === customerId) {
+          const historyCopy = [...c.history];
+          historyCopy.splice(index, 1);
+
+          const updated = {
+            ...c,
+            history: historyCopy,
+            lastVisit: historyCopy.length > 0 ? historyCopy[0].date : '',
+            visitCount: Math.max(0, Number(c.visitCount) - 1)
+          };
+          if (selectedCustomer?.id === customerId) setSelectedCustomer(updated);
+          return updated;
+        }
+        return c;
+      }));
+    }
+  };
+
   const updateVisitCountManually = (id: number, newCount: string) => {
     setCustomers(prev => prev.map(c => {
       if (c.id === id) {
@@ -531,9 +552,10 @@ export default function CustomerManagement() {
                               本日10%off!
                             </span>
                           )}
-                          <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setEditingHistoryIndex(i);
                                 setEditHistoryDate(h.date);
                                 setEditHistoryNote(h.note);
@@ -543,6 +565,16 @@ export default function CustomerManagement() {
                               title="記録を編集"
                             >
                               <Icon name="Edit3" size={14} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteVisitHistory(selectedCustomer.id, i);
+                              }}
+                              className="p-1.5 rounded-full hover:bg-red-50 text-[#A64B35]/50 hover:text-red-500 transition-colors"
+                              title="記録を削除"
+                            >
+                              <Icon name="Trash2" size={14} />
                             </button>
                           </div>
                         </div>
